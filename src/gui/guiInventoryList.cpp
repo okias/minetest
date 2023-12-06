@@ -152,10 +152,11 @@ void GUIInventoryList::draw()
 
 		// Add hovering tooltip
 		bool show_tooltip = !item.empty() && hovering && !selected_item;
-#ifdef HAVE_TOUCHSCREENGUI
-		// Make it possible to see item tooltips on touchscreens
-		show_tooltip |= hovering && selected && m_fs_menu->getSelectedAmount() != 0;
-#endif
+
+		if (g_settings->getBool("enable_touch")) {
+			// Make it possible to see item tooltips on touchscreens
+			show_tooltip |= hovering && selected && m_fs_menu->getSelectedAmount() != 0;
+		}
 		if (show_tooltip) {
 			std::string tooltip = orig_item.getDescription(client->idef());
 			if (m_fs_menu->doTooltipAppendItemname())

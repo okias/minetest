@@ -315,13 +315,11 @@ void GUIFormSpecMenu::parseSize(parserData* data, const std::string &element)
 		data->invsize.Y = MYMAX(0, stof(parts[1]));
 
 		lockSize(false);
-#ifndef HAVE_TOUCHSCREENGUI
-		if (parts.size() == 3) {
+		if (!g_settings->getBool("enable_touch") && parts.size() == 3) {
 			if (parts[2] == "true") {
 				lockSize(true,v2u32(800,600));
 			}
 		}
-#endif
 		data->explicit_size = true;
 		return;
 	}
@@ -3283,14 +3281,15 @@ void GUIFormSpecMenu::regenerateGui(v2u32 screensize)
 
 			s32 min_screen_dim = std::min(padded_screensize.X, padded_screensize.Y);
 
-#ifdef HAVE_TOUCHSCREENGUI
-			// In Android, the preferred imgsize should be larger to accommodate the
-			// smaller screensize.
-			double prefer_imgsize = min_screen_dim / 10 * gui_scaling;
-#else
-			// Desktop computers have more space, so try to fit 15 coordinates.
-			double prefer_imgsize = min_screen_dim / 15 * gui_scaling;
-#endif
+			double prefer_imgsize;
+			if (g_settings->getBool("enable_touch")) {
+				// The preferred imgsize should be larger to accommodate the
+				// smaller screensize.
+				prefer_imgsize = min_screen_dim / 10 * gui_scaling;
+			} else {
+				// Desktop computers have more space, so try to fit 15 coordinates.
+				prefer_imgsize = min_screen_dim / 15 * gui_scaling;
+			}
 			// Try to use the preferred imgsize, but if that's bigger than the maximum
 			// size, use the maximum size.
 			use_imgsize = std::min(prefer_imgsize,
@@ -3657,9 +3656,8 @@ void GUIFormSpecMenu::drawMenu()
 	}
 
 	// On touchscreens, m_pointer is set by GUIModalMenu::preprocessEvent instead.
-#ifndef HAVE_TOUCHSCREENGUI
-	m_pointer = RenderingEngine::get_raw_device()->getCursorControl()->getPosition();
-#endif
+	if (!g_settings->getBool("enable_touch"))
+		m_pointer = RenderingEngine::get_raw_device()->getCursorControl()->getPosition();
 
 	/*
 		Draw fields/buttons tooltips and update the mouse cursor
@@ -3667,11 +3665,11 @@ void GUIFormSpecMenu::drawMenu()
 	gui::IGUIElement *hovered =
 			Environment->getRootGUIElement()->getElementFromPoint(m_pointer);
 
-#ifndef HAVE_TOUCHSCREENGUI
+
 	gui::ICursorControl *cursor_control = RenderingEngine::get_raw_device()->
-			getCursorControl();
+		getCursorControl();
 	gui::ECURSOR_ICON current_cursor_icon = cursor_control->getActiveIcon();
-#endif
+
 	bool hovered_element_found = false;
 
 	if (hovered) {
@@ -3715,11 +3713,9 @@ void GUIFormSpecMenu::drawMenu()
 							m_tooltips[field.fname].bgcolor);
 				}
 
-#ifndef HAVE_TOUCHSCREENGUI
-				if (field.ftype != f_HyperText && // Handled directly in guiHyperText
+				if (!g_settings->getBool("enable_touch") && field.ftype != f_HyperText && // Handled directly in guiHyperText
 						current_cursor_icon != field.fcursor_icon)
 					cursor_control->setActiveIcon(field.fcursor_icon);
-#endif
 
 				hovered_element_found = true;
 
@@ -3728,12 +3724,10 @@ void GUIFormSpecMenu::drawMenu()
 		}
 	}
 
-	if (!hovered_element_found) {
+	if (!g_settings->getBool("enable_touch") && !hovered_element_found) {
 		// no element is hovered
-#ifndef HAVE_TOUCHSCREENGUI
 		if (current_cursor_icon != ECI_NORMAL)
 			cursor_control->setActiveIcon(ECI_NORMAL);
-#endif
 	}
 
 	m_tooltip_element->draw();
@@ -3764,16 +3758,16 @@ void GUIFormSpecMenu::showTooltip(const std::wstring &text,
 	v2u32 screenSize = Environment->getVideoDriver()->getScreenSize();
 	int tooltip_offset_x = m_btn_height;
 	int tooltip_offset_y = m_btn_height;
-#ifdef HAVE_TOUCHSCREENGUI
-	tooltip_offset_x *= 3;
-	tooltip_offset_y  = 0;
-	if (m_pointer.X > (s32)screenSize.X / 2)
-		tooltip_offset_x = -(tooltip_offset_x + tooltip_width);
+	if (g_settings->getBool("enable_touch")) {
+		tooltip_offset_x *= 3;
+		tooltip_offset_y  = 0;
+		if (m_pointer.X > (s32)screenSize.X / 2)
+			tooltip_offset_x = -(tooltip_offset_x + tooltip_width);
 
-	// Hide tooltip after ETIE_LEFT_UP
-	if (m_pointer.X == 0)
-		return;
-#endif
+		// Hide tooltip after ETIE_LEFT_UP
+		if (m_pointer.X == 0)
+			return;
+	}
 
 	// Calculate and set the tooltip position
 	s32 tooltip_x = m_pointer.X + tooltip_offset_x;
@@ -4326,14 +4320,12 @@ bool GUIFormSpecMenu::OnEvent(const SEvent& event)
 			}
 		}
 
-#ifdef HAVE_TOUCHSCREENGUI
 		// The second touch (see GUIModalMenu::preprocessEvent() function)
 		ButtonEventType touch = BET_OTHER;
 		if (event.EventType == EET_TOUCH_INPUT_EVENT) {
 			if (event.TouchInput.Event == ETIE_LEFT_UP)
 				touch = BET_RIGHT;
 		}
-#endif
 
 		// Set this number to a positive value to generate a move action
 		// from m_selected_item to s.
@@ -4678,8 +4670,7 @@ bool GUIFormSpecMenu::OnEvent(const SEvent& event)
 			break;
 		}
 
-#ifdef HAVE_TOUCHSCREENGUI
-		if (touch == BET_RIGHT && m_selected_item && !m_left_dragging) {
+		if (g_settings->getBool("enable_touch") && touch == BET_RIGHT && m_selected_item && !m_left_dragging) {
 			if (!s.isValid()) {
 				// Not a valid slot
 				if (!getAbsoluteClippingRect().isPointInside(m_pointer))
@@ -4698,7 +4689,6 @@ bool GUIFormSpecMenu::OnEvent(const SEvent& event)
 				}
 			}
 		}
-#endif
 
 		// Update left-dragged slots
 		if (m_left_dragging && m_left_drag_stacks.size() > 1) {
@@ -5067,10 +5057,8 @@ bool GUIFormSpecMenu::OnEvent(const SEvent& event)
 		}
 	}
 
-#ifdef HAVE_TOUCHSCREENGUI
-	if (m_second_touch)
+	if (g_settings->getBool("enable_touch") && m_second_touch)
 		return true; // Stop propagating the event
-#endif
 
 	return Parent ? Parent->OnEvent(event) : false;
 }

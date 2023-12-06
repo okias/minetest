@@ -76,11 +76,9 @@ protected:
 #ifdef __ANDROID__
 	std::string m_jni_field_name;
 #endif
-#ifdef HAVE_TOUCHSCREENGUI
 	// This is set to true if the menu is currently processing a second-touch event.
 	bool m_second_touch = false;
 	bool m_touchscreen_visible = true;
-#endif
 
 private:
 	struct clickpos
@@ -102,11 +100,9 @@ private:
 	// wants to launch other menus
 	bool m_allow_focus_removal = false;
 
-#ifdef HAVE_TOUCHSCREENGUI
 	irr_ptr<gui::IGUIElement> m_hovered;
 
 	bool simulateMouseEvent(gui::IGUIElement *target, ETOUCH_INPUT_EVENT touch_event);
 	void enter(gui::IGUIElement *element);
 	void leave();
-#endif
 };

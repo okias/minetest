@@ -256,10 +256,8 @@ bool ClientLauncher::run(GameStartData &start_data, const Settings &cmd_args)
 			m_rendering_engine->get_video_driver()->setTextureCreationFlag(
 					video::ETCF_CREATE_MIP_MAPS, g_settings->getBool("mip_map"));
 
-#ifdef HAVE_TOUCHSCREENGUI
 			receiver->m_touchscreengui = new TouchScreenGUI(m_rendering_engine->get_raw_device(), receiver);
 			g_touchscreengui = receiver->m_touchscreengui;
-#endif
 
 			the_game(
 				kill,
@@ -286,11 +284,9 @@ bool ClientLauncher::run(GameStartData &start_data, const Settings &cmd_args)
 
 		m_rendering_engine->get_scene_manager()->clear();
 
-#ifdef HAVE_TOUCHSCREENGUI
 		delete g_touchscreengui;
 		g_touchscreengui = NULL;
 		receiver->m_touchscreengui = NULL;
-#endif
 
 		// If no main menu, show error and exit
 		if (skip_main_menu) {

@@ -24,10 +24,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "gettext.h"
 #include "porting.h"
 #include "settings.h"
-
-#ifdef HAVE_TOUCHSCREENGUI
 #include "touchscreengui.h"
-#endif
 
 GUIModalMenu::GUIModalMenu(gui::IGUIEnvironment* env, gui::IGUIElement* parent,
 	s32 id, IMenuManager *menumgr, bool remap_dbl_click) :
@@ -41,11 +38,12 @@ GUIModalMenu::GUIModalMenu(gui::IGUIEnvironment* env, gui::IGUIElement* parent,
 {
 	m_gui_scale = std::max(g_settings->getFloat("gui_scaling"), 0.5f);
 	const float screen_dpi_scale = RenderingEngine::getDisplayDensity();
-#ifdef HAVE_TOUCHSCREENGUI
-	m_gui_scale *= 1.1f - 0.3f * screen_dpi_scale + 0.2f * screen_dpi_scale * screen_dpi_scale;
-#else
-	m_gui_scale *= screen_dpi_scale;
-#endif
+
+	if (g_settings->getBool("enable_touch")) {
+		m_gui_scale *= 1.1f - 0.3f * screen_dpi_scale + 0.2f * screen_dpi_scale * screen_dpi_scale;
+	} else {
+		m_gui_scale *= screen_dpi_scale;
+	}
 
 	setVisible(true);
 	m_menumgr->createdMenu(this);
@@ -102,10 +100,8 @@ void GUIModalMenu::quitMenu()
 	Environment->removeFocus(this);
 	m_menumgr->deletingMenu(this);
 	this->remove();
-#ifdef HAVE_TOUCHSCREENGUI
-	if (g_touchscreengui && m_touchscreen_visible)
+	if (g_settings->getBool("enable_touch") && g_touchscreengui && m_touchscreen_visible)
 		g_touchscreengui->show();
-#endif
 }
 
 bool GUIModalMenu::DoubleClickDetection(const SEvent &event)
@@ -169,8 +165,6 @@ static bool isChild(gui::IGUIElement *tocheck, gui::IGUIElement *parent)
 	return false;
 }
 
-#ifdef HAVE_TOUCHSCREENGUI
-
 bool GUIModalMenu::simulateMouseEvent(
 		gui::IGUIElement *target, ETOUCH_INPUT_EVENT touch_event)
 {
@@ -227,8 +221,6 @@ void GUIModalMenu::leave()
 	m_hovered.reset();
 }
 
-#endif
-
 bool GUIModalMenu::preprocessEvent(const SEvent &event)
 {
 #ifdef __ANDROID__
@@ -268,7 +260,6 @@ bool GUIModalMenu::preprocessEvent(const SEvent &event)
 	}
 #endif
 
-#ifdef HAVE_TOUCHSCREENGUI
 	if (event.EventType == EET_TOUCH_INPUT_EVENT) {
 		irr_ptr<GUIModalMenu> holder;
 		holder.grab(this); // keep this alive until return (it might be dropped downstream [?])
@@ -306,7 +297,6 @@ bool GUIModalMenu::preprocessEvent(const SEvent &event)
 			return true;
 		}
 	}
-#endif
 
 	if (event.EventType == EET_MOUSE_INPUT_EVENT) {
 		s32 x = event.MouseInput.X;
